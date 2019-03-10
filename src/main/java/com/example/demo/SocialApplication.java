@@ -58,68 +58,43 @@ public class SocialApplication extends WebSecurityConfigurerAdapter {
 		CompositeFilter filter = new CompositeFilter();
 		List<Filter> filters = new ArrayList<>();
 
-		OAuth2ClientAuthenticationProcessingFilter facebookFilter = ssoFilter(facebook(), facebookResource(), "/login/facebook");
-		filters.add(facebookFilter);
+		filters.add(ssoFilter(facebook(), "/login/facebook"));
+		filters.add(ssoFilter(github(), "/login/github"));
+		filters.add(ssoFilter(google(), "/login/google"));
 
-		OAuth2ClientAuthenticationProcessingFilter githubFilter = ssoFilter(github(), githubResource(), "/login/github");
-		filters.add(githubFilter);
-
-		OAuth2ClientAuthenticationProcessingFilter googleFilter = ssoFilter(google(), googleResource(), "/login/google");
-		filters.add(googleFilter);
-		
 		filter.setFilters(filters);
 		return filter;
 	}
 
-	private OAuth2ClientAuthenticationProcessingFilter ssoFilter(
-			AuthorizationCodeResourceDetails client, ResourceServerProperties resourceServer, String path) {
+	private Filter ssoFilter(ClientResources client, String path) {
 		OAuth2ClientAuthenticationProcessingFilter filter = new OAuth2ClientAuthenticationProcessingFilter(path);
-		OAuth2RestTemplate template = new OAuth2RestTemplate(client, oauth2ClientContext);
+		OAuth2RestTemplate template = new OAuth2RestTemplate(client.getClient(), oauth2ClientContext);
 		filter.setRestTemplate(template);
-		UserInfoTokenServices tokenServices = new UserInfoTokenServices(resourceServer.getUserInfoUri(),
-				client.getClientId());
+		UserInfoTokenServices tokenServices = new UserInfoTokenServices(client.getResource().getUserInfoUri(),
+				client.getClient().getClientId());
 		tokenServices.setRestTemplate(template);
 		filter.setTokenServices(tokenServices);
 		return filter;
 	}
 
 	@Bean
-	@ConfigurationProperties("facebook.client")
-	public AuthorizationCodeResourceDetails facebook() {
-		return new AuthorizationCodeResourceDetails();
+	@ConfigurationProperties("github")
+	public ClientResources github() {
+	  return new ClientResources();
 	}
 
 	@Bean
-	@ConfigurationProperties("facebook.resource")
-	public ResourceServerProperties facebookResource() {
-		return new ResourceServerProperties();
+	@ConfigurationProperties("facebook")
+	public ClientResources facebook() {
+	  return new ClientResources();
 	}
 
 	@Bean
-	@ConfigurationProperties("github.client")
-	public AuthorizationCodeResourceDetails github() {
-		return new AuthorizationCodeResourceDetails();
+	@ConfigurationProperties("google")
+	public ClientResources google() {
+	  return new ClientResources();
 	}
 
-	@Bean
-	@ConfigurationProperties("github.resource")
-	public ResourceServerProperties githubResource() {
-		return new ResourceServerProperties();
-	}
-
-
-	@Bean
-	@ConfigurationProperties("google.client")
-	public AuthorizationCodeResourceDetails google() {
-		return new AuthorizationCodeResourceDetails();
-	}
-
-	@Bean
-	@ConfigurationProperties("google.resource")
-	public ResourceServerProperties googleResource() {
-		return new ResourceServerProperties();
-	}
-	
 	@Bean
 	public FilterRegistrationBean<OAuth2ClientContextFilter> oauth2ClientFilterRegistration(
 			OAuth2ClientContextFilter filter) {
